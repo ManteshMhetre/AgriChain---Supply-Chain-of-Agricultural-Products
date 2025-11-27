@@ -29,6 +29,7 @@
   </a>
   &nbsp;&nbsp;&nbsp;
   <a href="https://expressjs.com/"><img src="https://github.com/ManteshMhetre/AgriChain---Supply-Chain-of-Agricultural-Products/blob/main/images/express.svg" width="50"></a>
+  
   &nbsp;&nbsp;
   <a href="https://www.nginx.com/">
     <img src="https://github.com/ManteshMhetre/AgriChain---Supply-Chain-of-Agricultural-Products/blob/main/images/nginx.png" width="80">
@@ -48,6 +49,7 @@
   <a href="#architecture">Architecture</a> •
   <a href="#flow">Flow</a> •
   <a href="#working">Working</a> •
+  <a href="#database-archival-system">Database Archival</a> •
   <a href="#contract-diagrams">Contract Diagrams</a> •
   <a href="#research-paper">Research Paper</a> •
   <a href="#installation-and-setup">Installation and Setup</a> •
@@ -146,9 +148,95 @@ The entire structure of the code.
   </a>
 </p>
 
+## Database Archival System
+
+<p>
+  To ensure disaster recovery and provide fast query capabilities for completed supply chains, the system includes an automated MongoDB archival service. This service runs alongside the blockchain network and automatically stores complete product journey data when products are delivered to customers.
+</p>
+
+### Features
+
+- **Automatic Archival**: Listens for `ReceivedByCustomer` blockchain events and automatically archives complete supply chain data
+- **Disaster Recovery**: Maintains database backup in case blockchain network stops
+- **Fast Queries**: Admin dashboard with statistics, search, and filtering capabilities
+- **Complete History**: Stores all 9 states of product journey with timestamps and transaction hashes
+- **REST API**: 8+ endpoints for querying archived data
+- **Data Export**: Backup functionality for complete data export
+
+### Architecture
+
+<p align="centre">
+The archive service uses event-driven architecture where blockchain events trigger database storage. MongoDB serves as a rebuildable cache for completed supply chains while blockchain remains the source of truth for active products.
+</p>
+
+### Setup Archive Service
+
+Navigate to server directory
+
+```Bash
+cd server
+```
+
+Install MongoDB (using Docker)
+
+```Bash
+docker run -d -p 27017:27017 --name mongodb mongo:latest
+```
+
+Install dependencies
+
+```Bash
+npm install
+```
+
+Configure environment
+
+```Bash
+cp .env.example .env
+```
+
+Update `.env` file with contract address (obtained after `truffle migrate`)
+
+```Bash
+MONGODB_URI=mongodb://localhost:27017/supplychain_archive
+BLOCKCHAIN_RPC=ws://127.0.0.1:8545
+CONTRACT_ADDRESS=<Your_SupplyChain_Contract_Address>
+PORT=5000
+```
+
+Start the archive service
+
+```Bash
+npm start
+```
+
+### API Endpoints
+
+The archive service provides the following endpoints for admin queries:
+
+- `GET /api/products` - Get all completed products (with pagination)
+- `GET /api/products/:uid` - Get specific product by UID
+- `GET /api/stats` - Get statistics (total products, delivery time, category breakdown)
+- `GET /api/search` - Search products with filters (manufacturer, customer, category, date range)
+- `POST /api/archive/:uid` - Manually archive a product
+- `GET /api/export` - Export all data as JSON backup
+- `GET /api/manufacturer/:address` - Get all products by manufacturer
+- `GET /api/customer/:address` - Get all products by customer
+- `GET /health` - Service health check
+
+### How It Works
+
+<p>
+When a customer receives a product and the <strong>receivedByCustomer()</strong> function is called, the smart contract emits a <strong>ReceivedByCustomer</strong> event. The archive service detects this event, fetches the complete product data including all 9 states from the blockchain, and stores it in MongoDB for fast querying and disaster recovery purposes.
+</p>
+
+<p>
+The archived data includes manufacturer details, third party information, delivery hub data, customer address, complete history array with all state transitions, timestamps, block numbers, transaction hashes, and calculated metrics like total time in supply chain.
+</p>
+
 ## Installation and Setup
 
-Prerequisites : `npm, git, docker(optional)`
+Prerequisites : `npm, git, docker(optional), mongodb(optional - for archival)`
 
 Clone the repository
 
